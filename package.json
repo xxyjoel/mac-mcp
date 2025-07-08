@@ -1,0 +1,26 @@
+{
+  "name": "mac-mcp",
+  "version": "0.1.0",
+  "description": "Mac MCP project - Model Context Protocol implementations for macOS",
+  "private": true,
+  "workspaces": [
+    "mac-calendar-mcp",
+    "mac-mail-mcp",
+    "mac-reminders-mcp"
+  ],
+  "scripts": {
+    "version": "npm version",
+    "postversion": "git push && git push --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xxyjoel/mac-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "macos"
+  ],
+  "author": "",
+  "license": "MIT"
+}
