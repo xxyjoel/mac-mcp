@@ -1,0 +1,14 @@
+{
+  "mcp.servers": {
+    "mac-calendar": {
+      "command": "node",
+      "args": ["/Users/yourusername/mac-calendar-mcp/dist/index.js"],
+      "env": {
+        "MCP_CALENDAR_TIMEOUT": "180000"
+      },
+      "capabilities": {
+        "tools": true
+      }
+    }
+  }
+}

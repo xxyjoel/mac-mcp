@@ -1,0 +1,53 @@
+{
+  "name": "mac-mail-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for secure, read-only access to macOS Mail",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && npm run build:helper",
+    "build:helper": "swiftc -o dist/mail-helper src/mail/mail-helper.swift",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:performance": "tsx test-performance.ts",
+    "test:stats": "tsx test-email-stats.ts",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mcp",
+    "mail",
+    "macos",
+    "email",
+    "model-context-protocol"
+  ],
+  "author": "Joel Proctor",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "better-sqlite3": "^11.10.0",
+    "cheerio": "^1.0.0",
+    "express": "^5.1.0",
+    "google-auth-library": "^10.1.0",
+    "googleapis": "^150.0.1",
+    "imap": "^0.8.19",
+    "mailparser": "^3.6.5",
+    "open": "^10.1.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/express": "^5.0.3",
+    "@types/imap": "^0.8.40",
+    "@types/jest": "^29.5.14",
+    "@types/mailparser": "^3.4.4",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^8.18.1",
+    "@typescript-eslint/parser": "^8.18.1",
+    "eslint": "^9.17.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.2"
+  }
+}

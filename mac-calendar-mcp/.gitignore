@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.js.map
+
+# Swift build artifacts
+calendar-helper
+.build/
+*.xcodeproj
+*.xcworkspace
+
+# Test artifacts
+coverage/
+.nyc_output/
+*.test.js
+test-*.js
+quick-test.js
+test-it-yourself.js
+debug-*.js
+weekly-summary*.js
+today-*.js
+july-*.js
+check-*.js
+week-events.json
+
+# Cache and databases
+*.db
+*.sqlite
+*.sqlite3
+.cache/
+~/.mac-calendar-mcp/
+
+# IDE and system files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment and config
+.env
+.env.local
+.env.*.local
+config.local.json
+claude_desktop_config.json
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Personal calendar data
+personal-events.json
+calendar-export.json
