@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && npm run build:helper",
-    "build:helper": "swiftc -o dist/mail-helper src/mail/mail-helper.swift",
+    "build": "tsc",
+    "build:helper": "echo 'Swift helper disabled for now'",
     "dev": "tsc --watch",
     "test": "jest",
     "test:performance": "tsx test-performance.ts",
