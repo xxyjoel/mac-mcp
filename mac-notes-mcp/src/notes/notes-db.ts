@@ -88,10 +88,10 @@ export class NotesDatabase {
       });
       
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if ((error as any).code === 'ENOENT') {
         throw new Error(`Notes database not found. Please ensure Notes.app is configured.`);
       }
-      throw SecurityManager.sanitizeError(error);
+      throw SecurityManager.sanitizeError(error as Error);
     }
   }
 
@@ -133,7 +133,7 @@ export class NotesDatabase {
       ORDER BY f.ZTITLE
     `;
 
-    const rows = this.db.prepare(query).all(folderEntity.Z_ENT);
+    const rows = this.db.prepare(query).all(folderEntity.Z_ENT) as any[];
     
     return rows.map(row => ({
       folderId: row.folder_id as number,
@@ -195,7 +195,7 @@ export class NotesDatabase {
     query += ` ORDER BY n.ZMODIFICATIONDATE DESC LIMIT ?`;
     params.push(safeLimit);
 
-    const rows = this.db.prepare(query).all(...params);
+    const rows = this.db.prepare(query).all(...params) as any[];
     
     return rows.map(row => ({
       noteId: row.note_id as number,
@@ -262,7 +262,7 @@ export class NotesDatabase {
       searchPattern,
       searchPattern,
       safeLimit
-    );
+    ) as any[];
     
     return rows.map(row => ({
       noteId: row.note_id as number,
@@ -325,7 +325,7 @@ export class NotesDatabase {
       params.push(safeLimit);
     }
 
-    const rows = this.db.prepare(query).all(...params);
+    const rows = this.db.prepare(query).all(...params) as any[];
     
     return rows.map(row => ({
       noteId: row.note_id as number,
@@ -401,7 +401,7 @@ export class NotesDatabase {
       WHERE f.Z_ENT = ?
       GROUP BY f.Z_PK
       ORDER BY note_count DESC
-    `).all(noteEntity.Z_ENT, folderEntity.Z_ENT);
+    `).all(noteEntity.Z_ENT, folderEntity.Z_ENT) as any[];
 
     const notesByFolder: Record<string, number> = {};
     notesByFolderRows.forEach(row => {

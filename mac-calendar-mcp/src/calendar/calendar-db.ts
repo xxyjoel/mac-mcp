@@ -85,10 +85,10 @@ export class CalendarDatabase {
       });
       
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if ((error as any).code === 'ENOENT') {
         throw new Error(`Calendar database not found. Please ensure Calendar.app is configured.`);
       }
-      throw SecurityManager.sanitizeError(error);
+      throw SecurityManager.sanitizeError(error as Error);
     }
   }
 
@@ -131,7 +131,7 @@ export class CalendarDatabase {
       ORDER BY c.title
     `;
 
-    const rows = this.db.prepare(query).all();
+    const rows = this.db.prepare(query).all() as any[];
     
     return rows.map(row => ({
       calendarId: row.calendar_id as number,
@@ -176,7 +176,7 @@ export class CalendarDatabase {
       LIMIT ?
     `;
 
-    const rows = this.db.prepare(query).all(cutoffDate, nowDate, limit);
+    const rows = this.db.prepare(query).all(cutoffDate, nowDate, limit) as any[];
     
     return rows.map(row => ({
       eventId: row.event_id as number,
@@ -230,7 +230,7 @@ export class CalendarDatabase {
       GROUP BY c.ROWID
       ORDER BY event_count DESC
     `;
-    const byCalendarRows = this.db.prepare(byCalendarQuery).all(cutoffDate, nowDate);
+    const byCalendarRows = this.db.prepare(byCalendarQuery).all(cutoffDate, nowDate) as any[];
     
     const eventsByCalendar: Record<string, number> = {};
     byCalendarRows.forEach(row => {
@@ -309,7 +309,7 @@ export class CalendarDatabase {
       searchPattern, 
       searchPattern, 
       safeLimit
-    );
+    ) as any[];
     
     return rows.map(row => ({
       eventId: row.event_id as number,
@@ -370,7 +370,7 @@ export class CalendarDatabase {
 
     query += ' ORDER BY ci.start_date ASC';
 
-    const rows = this.db.prepare(query).all(...params);
+    const rows = this.db.prepare(query).all(...params) as any[];
     
     return rows.map(row => ({
       eventId: row.event_id as number,

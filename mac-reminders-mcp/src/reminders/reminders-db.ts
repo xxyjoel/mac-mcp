@@ -92,10 +92,10 @@ export class RemindersDatabase {
       });
       
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if ((error as any).code === 'ENOENT') {
         throw new Error(`Reminders database not found. Please ensure Reminders.app is configured.`);
       }
-      throw SecurityManager.sanitizeError(error);
+      throw SecurityManager.sanitizeError(error as Error);
     }
   }
 
@@ -136,7 +136,7 @@ export class RemindersDatabase {
       ORDER BY l.ZNAME
     `;
 
-    const rows = this.db.prepare(query).all();
+    const rows = this.db.prepare(query).all() as any[];
     
     return rows.map(row => ({
       listId: row.list_id as number,
@@ -190,7 +190,7 @@ export class RemindersDatabase {
       query += ` LIMIT ${safeLimit}`;
     }
 
-    const rows = this.db.prepare(query).all();
+    const rows = this.db.prepare(query).all() as any[];
     
     return rows.map(row => ({
       reminderId: row.reminder_id as number,
@@ -246,7 +246,7 @@ export class RemindersDatabase {
       LIMIT ?
     `;
 
-    const rows = this.db.prepare(query).all(cutoffDate, safeLimit);
+    const rows = this.db.prepare(query).all(cutoffDate, safeLimit) as any[];
     
     return rows.map(row => ({
       reminderId: row.reminder_id as number,
@@ -300,7 +300,7 @@ export class RemindersDatabase {
 
     query += ` ORDER BY r.ZCOMPLETED ASC, r.ZDUEDATE ASC NULLS LAST, r.ZPRIORITY DESC`;
 
-    const rows = this.db.prepare(query).all(listId);
+    const rows = this.db.prepare(query).all(listId) as any[];
     
     return rows.map(row => ({
       reminderId: row.reminder_id as number,
@@ -362,7 +362,7 @@ export class RemindersDatabase {
 
     query += ` ORDER BY r.ZCOMPLETED ASC, r.ZLASTMODIFIEDDATE DESC LIMIT ?`;
 
-    const rows = this.db.prepare(query).all(searchPattern, searchPattern, safeLimit);
+    const rows = this.db.prepare(query).all(searchPattern, searchPattern, safeLimit) as any[];
     
     return rows.map(row => ({
       reminderId: row.reminder_id as number,
@@ -417,7 +417,7 @@ export class RemindersDatabase {
       ORDER BY r.ZDUEDATE ASC
     `;
 
-    const rows = this.db.prepare(query).all(nowDate, cutoffDate);
+    const rows = this.db.prepare(query).all(nowDate, cutoffDate) as any[];
     
     return rows.map(row => ({
       reminderId: row.reminder_id as number,
@@ -488,7 +488,7 @@ export class RemindersDatabase {
       LEFT JOIN ZREMCDREMINDER r ON r.ZLIST = l.Z_PK
       WHERE l.Z_ENT = (SELECT Z_ENT FROM Z_PRIMARYKEY WHERE Z_NAME = 'REMCDList')
       GROUP BY l.Z_PK
-    `).all();
+    `).all() as any[];
 
     const remindersByList: Record<string, { total: number; active: number; completed: number }> = {};
     listStatsRows.forEach(row => {
@@ -509,7 +509,7 @@ export class RemindersDatabase {
       FROM ZREMCDREMINDER
       WHERE ZCOMPLETED = 0 AND ZTITLE IS NOT NULL
       GROUP BY ZPRIORITY
-    `).all();
+    `).all() as any[];
 
     const remindersByPriority: Record<number, number> = {};
     priorityRows.forEach(row => {
