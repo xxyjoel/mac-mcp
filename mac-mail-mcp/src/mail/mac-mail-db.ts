@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import { SecurityManager } from '../../../src/utils/security.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -58,6 +59,19 @@ export class MacMailDatabase {
       // Check if Mail data directory exists
       const envelopeIndexPath = path.join(this.mailDataPath, 'MailData', 'Envelope Index');
       
+      // Security check: Verify database access
+      const securityCheck = await SecurityManager.checkDatabaseAccess(envelopeIndexPath);
+      if (!securityCheck.hasAccess) {
+        const error = new Error('Database access denied');
+        if (securityCheck.missingPermissions.length > 0) {
+          error.message += `\nMissing permissions: ${securityCheck.missingPermissions.join(', ')}`;
+        }
+        if (securityCheck.recommendations.length > 0) {
+          error.message += `\n\n${securityCheck.recommendations.join('\n')}`;
+        }
+        throw error;
+      }
+      
       await fs.access(envelopeIndexPath);
       
       // Open the database in read-only mode
@@ -67,11 +81,17 @@ export class MacMailDatabase {
       const result = this.db.prepare('SELECT COUNT(*) as count FROM messages').get() as { count: number };
       console.log(`Connected to Mac Mail database with ${result.count.toLocaleString()} total messages`);
       
+      // Log access for audit purposes
+      SecurityManager.logAccess('mail_database_connect', {
+        totalMessages: result.count,
+        timestamp: new Date()
+      });
+      
     } catch (error) {
       if (error.code === 'ENOENT') {
         throw new Error(`Mac Mail database not found. Please ensure Mail.app is configured and Terminal has Full Disk Access permission.`);
       }
-      throw new Error(`Failed to connect to Mac Mail database: ${error.message}`);
+      throw SecurityManager.sanitizeError(error);
     }
   }
 

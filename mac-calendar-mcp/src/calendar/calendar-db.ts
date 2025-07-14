@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { SecurityManager } from '../../../src/utils/security.js';
 
 // Apple's Core Foundation epoch starts at 2001-01-01
 const APPLE_EPOCH_OFFSET = 978307200; // seconds between Unix epoch and Apple epoch
@@ -52,6 +53,19 @@ export class CalendarDatabase {
    */
   async connect(): Promise<void> {
     try {
+      // Security check: Verify database access
+      const securityCheck = await SecurityManager.checkDatabaseAccess(this.calendarDbPath);
+      if (!securityCheck.hasAccess) {
+        const error = new Error('Database access denied');
+        if (securityCheck.missingPermissions.length > 0) {
+          error.message += `\nMissing permissions: ${securityCheck.missingPermissions.join(', ')}`;
+        }
+        if (securityCheck.recommendations.length > 0) {
+          error.message += `\n\n${securityCheck.recommendations.join('\n')}`;
+        }
+        throw error;
+      }
+      
       await fs.access(this.calendarDbPath);
       
       // Open in read-only mode
@@ -64,11 +78,17 @@ export class CalendarDatabase {
       const result = this.db.prepare('SELECT COUNT(*) as count FROM CalendarItem').get() as { count: number };
       console.log(`Connected to Calendar database with ${result.count.toLocaleString()} total events`);
       
+      // Log access for audit purposes
+      SecurityManager.logAccess('calendar_database_connect', {
+        totalEvents: result.count,
+        timestamp: new Date()
+      });
+      
     } catch (error) {
       if (error.code === 'ENOENT') {
         throw new Error(`Calendar database not found. Please ensure Calendar.app is configured.`);
       }
-      throw new Error(`Failed to connect to Calendar database: ${error.message}`);
+      throw SecurityManager.sanitizeError(error);
     }
   }
 
@@ -250,8 +270,14 @@ export class CalendarDatabase {
   async searchEvents(searchText: string, daysBack: number = 30, limit: number = 50): Promise<CalendarEvent[]> {
     if (!this.db) throw new Error('Database not connected');
 
+    // Sanitize search text
+    const sanitizedSearch = SecurityManager.sanitizeSearchQuery(searchText);
+    
+    // Enforce result limit
+    const safeLimit = SecurityManager.enforceResultLimit(limit);
+
     const cutoffDate = this.jsToAppleDate(new Date(Date.now() - (daysBack * 24 * 60 * 60 * 1000)));
-    const searchPattern = `%${searchText}%`;
+    const searchPattern = `%${sanitizedSearch}%`;
 
     const query = `
       SELECT 
@@ -282,7 +308,7 @@ export class CalendarDatabase {
       searchPattern, 
       searchPattern, 
       searchPattern, 
-      limit
+      safeLimit
     );
     
     return rows.map(row => ({
@@ -307,6 +333,9 @@ export class CalendarDatabase {
    */
   async getEventsInRange(startDate: Date, endDate: Date, calendarIds?: number[]): Promise<CalendarEvent[]> {
     if (!this.db) throw new Error('Database not connected');
+
+    // Validate date range
+    SecurityManager.validateDateRange(startDate, endDate);
 
     const startApple = this.jsToAppleDate(startDate);
     const endApple = this.jsToAppleDate(endDate);

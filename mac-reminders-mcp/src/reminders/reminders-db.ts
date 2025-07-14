@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { SecurityManager } from '../../../src/utils/security.js';
 
 // Apple's Core Foundation epoch starts at 2001-01-01
 const APPLE_EPOCH_OFFSET = 978307200;
@@ -60,6 +61,19 @@ export class RemindersDatabase {
    */
   async connect(): Promise<void> {
     try {
+      // Security check: Verify database access
+      const securityCheck = await SecurityManager.checkDatabaseAccess(this.remindersDbPath);
+      if (!securityCheck.hasAccess) {
+        const error = new Error('Database access denied');
+        if (securityCheck.missingPermissions.length > 0) {
+          error.message += `\nMissing permissions: ${securityCheck.missingPermissions.join(', ')}`;
+        }
+        if (securityCheck.recommendations.length > 0) {
+          error.message += `\n\n${securityCheck.recommendations.join('\n')}`;
+        }
+        throw error;
+      }
+      
       await fs.access(this.remindersDbPath);
       
       this.db = new Database(this.remindersDbPath, { 
@@ -71,11 +85,17 @@ export class RemindersDatabase {
       const result = this.db.prepare('SELECT COUNT(*) as count FROM ZREMCDREMINDER').get() as { count: number };
       console.log(`Connected to Reminders database with ${result.count} reminders`);
       
+      // Log access for audit purposes
+      SecurityManager.logAccess('reminders_database_connect', {
+        totalReminders: result.count,
+        timestamp: new Date()
+      });
+      
     } catch (error) {
       if (error.code === 'ENOENT') {
         throw new Error(`Reminders database not found. Please ensure Reminders.app is configured.`);
       }
-      throw new Error(`Failed to connect to Reminders database: ${error.message}`);
+      throw SecurityManager.sanitizeError(error);
     }
   }
 
@@ -135,6 +155,9 @@ export class RemindersDatabase {
    */
   async getActiveReminders(limit?: number): Promise<Reminder[]> {
     if (!this.db) throw new Error('Database not connected');
+    
+    // Enforce result limit if provided
+    const safeLimit = limit ? SecurityManager.enforceResultLimit(limit) : undefined;
 
     let query = `
       SELECT 
@@ -163,8 +186,8 @@ export class RemindersDatabase {
         r.ZCREATIONDATE DESC
     `;
 
-    if (limit) {
-      query += ` LIMIT ${limit}`;
+    if (safeLimit) {
+      query += ` LIMIT ${safeLimit}`;
     }
 
     const rows = this.db.prepare(query).all();
@@ -192,6 +215,9 @@ export class RemindersDatabase {
    */
   async getCompletedReminders(daysBack: number = 7, limit: number = 50): Promise<Reminder[]> {
     if (!this.db) throw new Error('Database not connected');
+    
+    // Enforce result limit
+    const safeLimit = SecurityManager.enforceResultLimit(limit);
 
     const cutoffDate = this.jsToAppleDate(new Date(Date.now() - (daysBack * 24 * 60 * 60 * 1000)));
 
@@ -220,7 +246,7 @@ export class RemindersDatabase {
       LIMIT ?
     `;
 
-    const rows = this.db.prepare(query).all(cutoffDate, limit);
+    const rows = this.db.prepare(query).all(cutoffDate, safeLimit);
     
     return rows.map(row => ({
       reminderId: row.reminder_id as number,
@@ -299,8 +325,14 @@ export class RemindersDatabase {
    */
   async searchReminders(searchText: string, includeCompleted: boolean = false, limit: number = 50): Promise<ReminderSearchResult[]> {
     if (!this.db) throw new Error('Database not connected');
+    
+    // Sanitize search text
+    const sanitizedSearch = SecurityManager.sanitizeSearchQuery(searchText);
+    
+    // Enforce result limit
+    const safeLimit = SecurityManager.enforceResultLimit(limit);
 
-    const searchPattern = `%${searchText}%`;
+    const searchPattern = `%${sanitizedSearch}%`;
 
     let query = `
       SELECT 
@@ -330,7 +362,7 @@ export class RemindersDatabase {
 
     query += ` ORDER BY r.ZCOMPLETED ASC, r.ZLASTMODIFIEDDATE DESC LIMIT ?`;
 
-    const rows = this.db.prepare(query).all(searchPattern, searchPattern, limit);
+    const rows = this.db.prepare(query).all(searchPattern, searchPattern, safeLimit);
     
     return rows.map(row => ({
       reminderId: row.reminder_id as number,

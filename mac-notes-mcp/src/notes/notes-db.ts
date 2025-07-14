@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { SecurityManager } from '../../../src/utils/security.js';
 
 // Apple's Core Foundation epoch starts at 2001-01-01
 const APPLE_EPOCH_OFFSET = 978307200;
@@ -51,6 +52,19 @@ export class NotesDatabase {
    */
   async connect(): Promise<void> {
     try {
+      // Security check: Verify database access
+      const securityCheck = await SecurityManager.checkDatabaseAccess(this.notesDbPath);
+      if (!securityCheck.hasAccess) {
+        const error = new Error('Database access denied');
+        if (securityCheck.missingPermissions.length > 0) {
+          error.message += `\nMissing permissions: ${securityCheck.missingPermissions.join(', ')}`;
+        }
+        if (securityCheck.recommendations.length > 0) {
+          error.message += `\n\n${securityCheck.recommendations.join('\n')}`;
+        }
+        throw error;
+      }
+      
       await fs.access(this.notesDbPath);
       
       this.db = new Database(this.notesDbPath, { 
@@ -67,11 +81,17 @@ export class NotesDatabase {
       
       console.log(`Connected to Notes database with ${result.count} notes`);
       
+      // Log access for audit purposes
+      SecurityManager.logAccess('notes_database_connect', {
+        totalNotes: result.count,
+        timestamp: new Date()
+      });
+      
     } catch (error) {
       if (error.code === 'ENOENT') {
         throw new Error(`Notes database not found. Please ensure Notes.app is configured.`);
       }
-      throw new Error(`Failed to connect to Notes database: ${error.message}`);
+      throw SecurityManager.sanitizeError(error);
     }
   }
 
@@ -130,6 +150,9 @@ export class NotesDatabase {
    */
   async getRecentNotes(limit: number = 20, daysBack?: number): Promise<Note[]> {
     if (!this.db) throw new Error('Database not connected');
+    
+    // Enforce result limit
+    const safeLimit = SecurityManager.enforceResultLimit(limit);
 
     // Get the entity ID for notes
     const noteEntity = this.db.prepare(`
@@ -170,7 +193,7 @@ export class NotesDatabase {
     }
 
     query += ` ORDER BY n.ZMODIFICATIONDATE DESC LIMIT ?`;
-    params.push(limit);
+    params.push(safeLimit);
 
     const rows = this.db.prepare(query).all(...params);
     
@@ -193,12 +216,18 @@ export class NotesDatabase {
    */
   async searchNotes(searchText: string, limit: number = 50): Promise<NoteSearchResult[]> {
     if (!this.db) throw new Error('Database not connected');
+    
+    // Sanitize search text
+    const sanitizedSearch = SecurityManager.sanitizeSearchQuery(searchText);
+    
+    // Enforce result limit
+    const safeLimit = SecurityManager.enforceResultLimit(limit);
 
     const noteEntity = this.db.prepare(`
       SELECT Z_ENT FROM Z_PRIMARYKEY WHERE Z_NAME = 'ICNote'
     `).get() as { Z_ENT: number };
 
-    const searchPattern = `%${searchText}%`;
+    const searchPattern = `%${sanitizedSearch}%`;
 
     const query = `
       SELECT 
@@ -232,7 +261,7 @@ export class NotesDatabase {
       noteEntity.Z_ENT,
       searchPattern,
       searchPattern,
-      limit
+      safeLimit
     );
     
     return rows.map(row => ({
@@ -254,6 +283,9 @@ export class NotesDatabase {
    */
   async getNotesByFolder(folderId: number, limit?: number): Promise<Note[]> {
     if (!this.db) throw new Error('Database not connected');
+    
+    // Enforce result limit if provided
+    const safeLimit = limit ? SecurityManager.enforceResultLimit(limit) : undefined;
 
     const noteEntity = this.db.prepare(`
       SELECT Z_ENT FROM Z_PRIMARYKEY WHERE Z_NAME = 'ICNote'
@@ -288,9 +320,9 @@ export class NotesDatabase {
 
     const params: any[] = [noteEntity.Z_ENT, folderId];
 
-    if (limit) {
+    if (safeLimit) {
       query += ` LIMIT ?`;
-      params.push(limit);
+      params.push(safeLimit);
     }
 
     const rows = this.db.prepare(query).all(...params);
