@@ -23,6 +23,11 @@
     "src/mail/professional-imap-client.ts",
     "src/mail/imap-client.ts", 
     "src/mail/hybrid-client.ts",
-    "src/index-hybrid.ts"
+    "src/index-hybrid.ts",
+    "src/index-original.ts",
+    "src/cache/**/*",
+    "src/gmail/**/*",
+    "src/mail/hybrid-email-client.ts",
+    "src/mail/emlx-parser.ts"
   ]
 }

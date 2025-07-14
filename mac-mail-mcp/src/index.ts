@@ -84,8 +84,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       
       case "get_recent_emails": {
-        const days = request.params.arguments?.days || 2;
-        const limit = request.params.arguments?.limit || 100;
+        const args = request.params.arguments as any || {};
+        const days = args.days || 2;
+        const limit = args.limit || 100;
         const messages = await db.getRecentMessages(days, limit);
         
         return {

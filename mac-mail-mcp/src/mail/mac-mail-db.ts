@@ -88,10 +88,10 @@ export class MacMailDatabase {
       });
       
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if ((error as any).code === 'ENOENT') {
         throw new Error(`Mac Mail database not found. Please ensure Mail.app is configured and Terminal has Full Disk Access permission.`);
       }
-      throw SecurityManager.sanitizeError(error);
+      throw SecurityManager.sanitizeError(error as Error);
     }
   }
 
@@ -112,7 +112,7 @@ export class MacMailDatabase {
       ORDER BY m.url
     `;
 
-    const rows = this.db.prepare(query).all();
+    const rows = this.db.prepare(query).all() as any[];
     const accountMap = new Map<string, MacMailAccount>();
 
     for (const row of rows) {
@@ -179,7 +179,7 @@ export class MacMailDatabase {
       LIMIT ?
     `;
 
-    const rows = this.db.prepare(query).all(cutoffTimestamp, limit);
+    const rows = this.db.prepare(query).all(cutoffTimestamp, limit) as any[];
     const messages: MacMailMessage[] = [];
 
     for (const row of rows) {
