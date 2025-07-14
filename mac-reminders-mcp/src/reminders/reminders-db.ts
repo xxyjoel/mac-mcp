@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
-import { SecurityManager } from '../../../src/utils/security.js';
+import { SecurityManager } from '../utils/security.js';
 
 // Apple's Core Foundation epoch starts at 2001-01-01
 const APPLE_EPOCH_OFFSET = 978307200;

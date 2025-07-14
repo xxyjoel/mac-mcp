@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
-import { SecurityManager } from '../../../src/utils/security.js';
+import { SecurityManager } from '../utils/security.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -48,7 +48,7 @@ export class EmlxParser {
       const content = await fs.readFile(emlxPath, 'utf-8');
       return this.parseEmlxContent(content);
     } catch (error) {
-      throw new Error(`Failed to read EMLX file ${emlxPath}: ${error.message}`);
+      throw new Error(`Failed to read EMLX file ${emlxPath}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
