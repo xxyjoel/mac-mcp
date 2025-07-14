@@ -223,7 +223,7 @@ export class MacMailDatabase {
     `;
     
     const messageIds = messages.map(m => m.globalMessageId);
-    const duplicateRows = this.db.prepare(duplicateQuery).all(...messageIds);
+    const duplicateRows = this.db.prepare(duplicateQuery).all(...messageIds) as any[];
     
     duplicateRows.forEach(row => {
       duplicateIds.add(row.message_id as number);
